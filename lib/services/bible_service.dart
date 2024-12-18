@@ -73,7 +73,7 @@ class BibleService {
   }
 
   //Fetches chapter text for the selected chapter
-  static Future<List<Map<String, dynamic>>> fetchText(String chapterId) async {
+  Future<List<Map<String, dynamic>>> fetchText(String chapterId) async {
     final chapterUrl = '$_apiUrl/$_bibleId/chapters/$chapterId/verses';
     try {
       final chapterResponse = await http.get(

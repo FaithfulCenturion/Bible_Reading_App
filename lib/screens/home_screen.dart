@@ -22,27 +22,27 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<ReadingPlan?> _getCurrentReadingPlan() async {
-    try {
-      var box = HiveService().readingPlanBox;
-      if (box.isNotEmpty) {
-        final plans = box.values.cast<ReadingPlan>().toList();
-        // Assuming only one plan exists, you could extend this for multiple plans
-        final readingPlan = plans.firstWhere(
-          (plan) =>
-              plan.plannedStartDate.isBefore(DateTime.now()) &&
-              plan.plannedEndDate.isAfter(DateTime.now()),
-          orElse: () {
-            throw Exception(
-                "No reading plan found for today. Please create a reading plan.");
-          },
-        );
-        return readingPlan;
-      }
-      return null;
-    } catch (e) {
-      throw Exception("Error retrieving the current reading plan: $e");
+  try {
+    var box = HiveService().readingPlanBox;
+    if (box.isNotEmpty) {
+      final plans = box.values.cast<ReadingPlan>().toList();
+
+      // Search for a plan that includes today's date
+      final matchingPlans = plans.where(
+        (plan) =>
+            plan.plannedEndDate.isAfter(DateTime.now()),
+      );
+
+      // Return the first matching plan or null if no match
+      return matchingPlans.isNotEmpty ? matchingPlans.first : null;
     }
+
+    // Return null if the box is empty
+    return null;
+  } catch (e) {
+    throw Exception("Error retrieving the current reading plan: $e");
   }
+}
 
   @override
   Widget build(BuildContext context) {

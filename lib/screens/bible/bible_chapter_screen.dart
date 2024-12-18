@@ -1,4 +1,5 @@
 import 'package:bible_reader_app/screens/bible/chapter_text_screen.dart';
+import 'package:bible_reader_app/services/bible_service.dart';
 import 'package:flutter/material.dart';
 
 class BibleChapterScreen extends StatelessWidget {
@@ -15,6 +16,7 @@ class BibleChapterScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bibleService = BibleService();
     int calculateCrossAxisCount(int totalItems) {
       const int minCount = 3;
       const int maxCount = 5;
@@ -68,6 +70,7 @@ class BibleChapterScreen extends StatelessWidget {
                   builder: (context) => ChapterTextScreen(
                     bookName: bookName,
                     chapterId: chapterId,
+                    bibleService: bibleService,
                   ),
                 ),
               );

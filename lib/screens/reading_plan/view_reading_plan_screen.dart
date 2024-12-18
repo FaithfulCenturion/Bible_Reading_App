@@ -1,6 +1,7 @@
 import 'package:bible_reader_app/models/reading_plan.dart';
 import 'package:bible_reader_app/screens/reading_plan/edit_reading_plan_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class ViewReadingPlanScreen extends StatefulWidget {
   final ReadingPlan plan;
@@ -20,6 +21,35 @@ class _ViewReadingPlanState extends State<ViewReadingPlanScreen> {
     _currentPlan = widget.plan;
   }
 
+    // Helper function to compare two dates without the time component
+  bool isSameDate(DateTime date1, DateTime date2) {
+    return date1.year == date2.year &&
+        date1.month == date2.month &&
+        date1.day == date2.day;
+  }
+
+    // Get today's reading, if available
+  DailyReading? _getTodayReading() {
+  final today = DateTime.now();
+  print(_currentPlan.dailyReadings[0].date);
+  // Use where and check if any element exists
+  final readings = _currentPlan.dailyReadings.where(
+    (reading) => isSameDate(reading.date, today),
+  ).toList();
+
+  // If we have any readings, return the first one, otherwise return null
+  return readings.isNotEmpty ? readings.first : null;
+}
+
+  // Get next week's readings (7 days after today)
+  List<DailyReading> _getNextWeekReadings() {
+    final today = DateTime.now();
+    return _currentPlan.dailyReadings.where((reading) {
+      final difference = reading.date.difference(today).inDays;
+      return difference > 0 && difference <= 7; // Only next 7 days
+    }).toList();
+  }
+
   void _navigateToEditReadingPlanScreen() async {
     final updatePlan = await Navigator.push(
       context,
@@ -37,9 +67,11 @@ class _ViewReadingPlanState extends State<ViewReadingPlanScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final todayReading = _getTodayReading();
+    final nextWeekReadings = _getNextWeekReadings();
+
     // Dynamically build the list of included sections
     final List<String> includedSections = [];
-    print(_currentPlan);
     if (_currentPlan.includeOldTestament) {
       includedSections.add('The Old Testament');
     }
@@ -62,8 +94,38 @@ class _ViewReadingPlanState extends State<ViewReadingPlanScreen> {
               'Today\'s reading:',
               style: TextStyle(fontSize: 16),
             ),
+            SizedBox(height: 10),
+            todayReading != null
+                ? Card(
+                    child: ListTile(
+                      title: Text(todayReading.passage),
+                      subtitle: Text(DateFormat.yMMMMd().format(todayReading.date)),
+                    ),
+                  )
+                : Text('No reading scheduled for today.'),
+
             SizedBox(height: 20),
-            Text('Content goes here'),
+
+            // Next Week's Reading Section
+            Text(
+              'Next Week\'s Reading:',
+              style: TextStyle(fontSize: 16),
+            ),
+            SizedBox(height: 10),
+            if (nextWeekReadings.isNotEmpty)
+              Column(
+                children: nextWeekReadings.map((reading) {
+                  return Card(
+                    child: ListTile(
+                      title: Text(reading.passage),
+                      subtitle: Text(DateFormat.yMMMMd().format(reading.date)),
+                    ),
+                  );
+                }).toList(),
+              )
+            else
+              Text('No readings scheduled for the next week.'),
+
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: _navigateToEditReadingPlanScreen,

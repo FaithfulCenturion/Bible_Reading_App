@@ -5,10 +5,13 @@ import 'package:html/parser.dart' as html_parser;
 class ChapterTextScreen extends StatelessWidget {
   final String bookName;
   final String chapterId;
+  final BibleService bibleService;
+  
 
   const ChapterTextScreen({
     required this.bookName,
     required this.chapterId,
+    required this.bibleService,
     super.key,
   });
 
@@ -29,7 +32,7 @@ class ChapterTextScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text('$bookName: $chapterTitle')),
       body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: BibleService.fetchText(chapterId), // Call the service function
+        future: bibleService.fetchText(chapterId), // Call the service function
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             // Show a loading spinner while fetching data

@@ -1,20 +1,23 @@
 import 'package:bible_reader_app/models/reading_plan.dart';
+import 'package:bible_reader_app/providers/bible_provider.dart';
 import 'package:bible_reader_app/services/hive_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // Define the Riverpod state notifier
 final readingPlanProvider =
     StateNotifierProvider<ReadingPlanNotifier, ReadingPlan?>((ref) {
-  return ReadingPlanNotifier();
+  return ReadingPlanNotifier(ref);
 });
 
 class ReadingPlanNotifier extends StateNotifier<ReadingPlan?> {
-  ReadingPlanNotifier() : super(null);
+  final Ref ref;
+
+  ReadingPlanNotifier(this.ref) : super(null);
 
   Future<void> createReadingPlan(
       DateTime start, DateTime end, bool ot, bool apoc, bool nt) async {
     // Generate the daily readings
-    final dailyReadings = _generateDailyReadings(start, end, ot, apoc, nt);
+    final dailyReadings = await _generateDailyReadings(start, end, ot, apoc, nt);
 
     // Create a new ReadingPlan object
     ReadingPlan newPlan = ReadingPlan()
@@ -27,7 +30,6 @@ class ReadingPlanNotifier extends StateNotifier<ReadingPlan?> {
 
     // Save or update the reading plan in Hive
     await _addOrUpdateReadingPlan(newPlan);
-
     state = newPlan;
   }
 
@@ -44,34 +46,40 @@ class ReadingPlanNotifier extends StateNotifier<ReadingPlan?> {
     }
   }
 
-  List<DailyReading> _generateDailyReadings(
-      DateTime start, DateTime end, bool ot, bool apoc, bool nt) {
-    // Example implementation: Distribute chapters evenly between start and end dates
-    final totalDays = end.difference(start).inDays + 1;
-    final passages = <String>[];
+  Future<List<DailyReading>> _generateDailyReadings(
+    DateTime start, DateTime end, bool ot, bool apoc, bool nt) async {
+  final totalDays = end.difference(start).inDays + 1;
+  
+  final allPassages = <String>[];
+  final bibleProviderInstance = ref.read(bibleProvider);
 
-    if (ot) passages.addAll(_oldTestamentPassages());
-    if (apoc) passages.addAll(_apocryphaPassages());
-    if (nt) passages.addAll(_newTestamentPassages());
 
-    final dailyReadings = <DailyReading>[];
-    final chaptersPerDay = (passages.length / totalDays).ceil();
-
-    for (var i = 0; i < totalDays; i++) {
-      final dayPassages =
-          passages.skip(i * chaptersPerDay).take(chaptersPerDay).join(', ');
-      dailyReadings.add(DailyReading()
-        ..date = start.add(Duration(days: i))
-        ..passage = dayPassages);
-    }
-
-    return dailyReadings;
+  if (ot) {
+    final oldTestamentVerses = await bibleProviderInstance.loadVerses(bibleProviderInstance.oldTestamentChapters);
+    allPassages.addAll(oldTestamentVerses);
+  }
+  if (apoc) {
+    final apocryphaVerses = await bibleProviderInstance.loadVerses(bibleProviderInstance.apocryphaChapters);
+    allPassages.addAll(apocryphaVerses);
+  }
+  if (nt) {
+    final newTestamentVerses = await bibleProviderInstance.loadVerses(bibleProviderInstance.newTestamentChapters);
+    allPassages.addAll(newTestamentVerses);
   }
 
-  List<String> _oldTestamentPassages() =>
-      ["Genesis 1-2", "Exodus 1-3"]; // Add real data
-  List<String> _apocryphaPassages() =>
-      ["1 Maccabees 1", "Wisdom 1"]; // Add real data
-  List<String> _newTestamentPassages() =>
-      ["Matthew 1", "John 1"]; // Add real data
+  final dailyReadings = <DailyReading>[];
+  final versesPerDay = (allPassages.length / totalDays).ceil();
+
+  for (var i = 0; i < totalDays; i++) {
+    final dayPassages =
+        allPassages.skip(i * versesPerDay).take(versesPerDay).join(', ');
+    dailyReadings.add(DailyReading()
+      ..date = start.add(Duration(days: i))
+      ..passage = dayPassages);
+  }
+  print(dailyReadings);
+  return dailyReadings;
+}
+
+  
 }
